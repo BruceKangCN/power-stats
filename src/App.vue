@@ -13,6 +13,8 @@ import {
   DataZoomComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers';
+import { invoke } from '@tauri-apps/api';
+import { open } from '@tauri-apps/api/dialog';
 
 // 基本都是抄的
 use([
@@ -97,8 +99,23 @@ const option = ref({
 });
 
 // TODO: 获取表单数据并发往后端，返回绘制图表所需数据
-const onFinish = (values: FormState) => {
-  console.log({values});
+const onFinish = async (state: FormState) => {
+  console.log({values: state});
+
+  const data = await invoke('handle_submit', state as any);
+  // const data = await invoke('handle_submit', { ratedCapacity: state.ratedCapacity, isPrimaryLoad: state.isPrimaryLoad, ratio: state.ratio, filepath: state.filepath });
+  console.log({data});
+};
+
+const openFile = async () => {
+  const filepath = await open();
+  if (filepath) {
+    if (typeof(filepath) == 'string') {
+      formState.filepath = filepath;
+    } else {
+      formState.filepath = filepath[0];
+    }
+  }
 };
 </script>
 
@@ -145,12 +162,14 @@ const onFinish = (values: FormState) => {
         name="filepath"
         :rules="[{ required: true, message: '请选择数据文件' }]"
       >
-        <a-input
-          id="file-selector"
-          v-model:value="formState.filepath"
-          type="file"
-          placeholder="文件路径"
-        />
+        <a-space>
+          <a-input
+            id="file-selector"
+            v-model:value="formState.filepath"
+            placeholder="文件路径"
+          />
+          <a-button @click="openFile">...</a-button>
+        </a-space>
       </a-form-item>
 
       <a-form-item

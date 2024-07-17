@@ -18,6 +18,13 @@
       },
       "window": {
         "all": true
+      },
+      "fs": {
+        "all": true,
+        "scope": ["*"]
+      },
+      "dialog": {
+        "all": true
       }
     },
     "windows": [
