@@ -28,7 +28,9 @@ pub enum PeriodCategory {
 pub fn get_file_content(filepath: &str) -> Result<String, String> {
     let matches = charset_normalizer_rs::from_path(&PathBuf::from(filepath), None)?;
     let best_match = matches.get_best().ok_or("failed to get best encoding")?;
-    let content = best_match.decoded_payload().ok_or("failed to decode text")?;
+    let content = best_match
+        .decoded_payload()
+        .ok_or("failed to decode text")?;
 
     Ok(content.into())
 }

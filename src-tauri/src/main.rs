@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 
+use csv::Trim;
 use model::{FigureRecord, Record};
 use power_stats::{categorize_by_time, get_date_time, get_file_content, DateTime, PeriodCategory};
 use regex::Regex;
@@ -23,7 +24,10 @@ async fn handle_submit(
     filepath: String,
 ) -> Result<Vec<FigureRecord>, String> {
     let content = get_file_content(&filepath)?;
-    let mut reader = csv::Reader::from_reader(content.as_bytes());
+    // 读取时需清除空白字符，不然会导致数值解析出错
+    let mut reader = csv::ReaderBuilder::new()
+        .trim(Trim::All)
+        .from_reader(content.as_bytes());
 
     // 用于匹配时间、日期的正则表达式，格式为 YYYY-MM-DD hh:mm:ss
     let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})").unwrap();
@@ -31,7 +35,6 @@ async fn handle_submit(
     let mut map = HashMap::new();
 
     for result in reader.deserialize() {
-        println!("{:?}", result);
         let record: Record = result.or(Err("failed to deserialize record"))?;
 
         let dt = get_date_time(&record.time, &re);
@@ -45,14 +48,12 @@ async fn handle_submit(
         };
 
         // 简便起见，采用矩形积分
-        map.entry(key).and_modify(|value| *value += record.active_power).or_insert(record.active_power);
+        map.entry(key)
+            .and_modify(|value| *value += record.active_power)
+            .or_insert(record.active_power);
     }
 
-    let ratio = if is_primary_load {
-        ratio.unwrap()
-    } else {
-        1.0
-    };
+    let ratio = if is_primary_load { ratio.unwrap() } else { 1.0 };
 
     // 将哈希表转换为向量
     let mut data = Vec::new();
