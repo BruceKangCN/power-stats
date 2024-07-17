@@ -86,25 +86,21 @@ const option = ref({
       smooth: true,
       connectNulls: true,
     },
+    {
+      type: 'line',
+      smooth: true,
+      connectNulls: true,
+    },
   ],
   dataset: {
-    dimensions: ['time', 'user1', 'user2'],
-    source: [
-      { time: '2019-10-01T00:00:00', user1: 1.7, user2: 3.1 },
-      { time: '2019-10-01T01:00:00', user1: 3.4, user2: null },
-      { time: '2019-10-01T02:00:00', user1: 2.5, user2: 2.7 },
-      { time: '2019-10-01T03:00:00', user1: 3.3, user2: null },
-    ],
+    dimensions: ['time', 'peak', 'offPeak', 'sharp'],
+    source: [],
   },
 });
 
-// TODO: 获取表单数据并发往后端，返回绘制图表所需数据
+// 获取表单数据并发往后端，后端返回绘制图表所需数据，然后利用数据绘图
 const onFinish = async (state: FormState) => {
-  console.log({values: state});
-
-  const data = await invoke('handle_submit', state as any);
-  // const data = await invoke('handle_submit', { ratedCapacity: state.ratedCapacity, isPrimaryLoad: state.isPrimaryLoad, ratio: state.ratio, filepath: state.filepath });
-  console.log({data});
+  option.value.dataset.source = await invoke('handle_submit', state as any);
 };
 
 const openFile = async () => {
