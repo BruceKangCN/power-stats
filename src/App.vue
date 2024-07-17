@@ -11,11 +11,10 @@ import {
   GridComponent,
   DatasetComponent,
   DataZoomComponent,
-  DataZoomInsideComponent,
-  DataZoomSliderComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers';
 
+// 基本都是抄的
 use([
   TitleComponent,
   TooltipComponent,
@@ -24,8 +23,6 @@ use([
   GridComponent,
   DatasetComponent,
   DataZoomComponent,
-  DataZoomInsideComponent,
-  DataZoomSliderComponent,
   LineChart,
   CanvasRenderer,
 ]);
@@ -44,6 +41,7 @@ const formState = reactive<FormState>({
   filepath: '',
 })
 
+// 以下配置基本都是抄的
 const option = ref({
   legend: {},
   tooltip: {},
@@ -69,6 +67,7 @@ const option = ref({
     },
   ],
   xAxis: {
+    // `type` 设为 `time` 时经常会有各种莫名其妙的问题，所以此处使用 `category`
     type: 'category',
   },
   yAxis: {
@@ -177,6 +176,8 @@ const onFinish = (values: FormState) => {
 
 .chart {
   width: 100%;
+
+  /* 令图表占满剩余高度 */
   display: flex;
   flex-grow: 1;
 }
