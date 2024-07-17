@@ -1,0 +1,27 @@
+{
+  "name": "power-stats",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1",
+    "ant-design-vue": "^4.2.3",
+    "echarts": "^5.5.1",
+    "vue": "^3.3.4",
+    "vue-echarts": "^6.7.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "typescript": "^5.2.2",
+    "unplugin-vue-components": "^0.27.3",
+    "vite": "^5.3.1",
+    "vue-tsc": "^2.0.22"
+  }
+}
