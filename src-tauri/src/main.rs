@@ -47,6 +47,9 @@ async fn handle_submit(
     }
 
     // TODO: 将 map 排序并放入 vector 中，以距离起始经过的时间为单位（以小时计）
+    let start_point = map.keys().min().unwrap().to_owned();
+    let cap = (*map.keys().max().unwrap() - start_point).num_hours();
+    let mut data = Vec::with_capacity(cap.try_into().unwrap());
 
     let ratio = if is_primary_load { ratio.unwrap() } else { 1.0 };
 
