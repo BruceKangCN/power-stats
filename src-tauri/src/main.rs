@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 
+use chrono::{NaiveDateTime, Timelike};
 use csv::Trim;
 use model::{FigureRecord, Record};
-use power_stats::{categorize_by_time, get_date_time, get_file_content, DateTime, PeriodCategory};
-use regex::Regex;
+use power_stats::{categorize_by_datetime, get_file_content, PeriodCategory};
 
 pub mod model;
 
@@ -29,23 +29,16 @@ async fn handle_submit(
         .trim(Trim::All)
         .from_reader(content.as_bytes());
 
-    // 用于匹配时间、日期的正则表达式，格式为 YYYY-MM-DD hh:mm:ss
-    let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})").unwrap();
     // 用于存放时刻-功率对应关系的哈希表
     let mut map = HashMap::new();
 
     for result in reader.deserialize() {
         let record: Record = result.or(Err("failed to deserialize record"))?;
 
-        let dt = get_date_time(&record.time, &re);
-        let key = DateTime {
-            year: dt.year,
-            month: dt.month,
-            day: dt.day,
-            hour: dt.hour,
-            minute: 0,
-            second: 0,
-        };
+        // let dt = get_date_time(&record.time, &re);
+        let dt = NaiveDateTime::parse_from_str(&record.time, "%Y-%m-%d %H:%M:%S")
+            .expect("failed to parse datetime");
+        let key = dt.date().and_hms_opt(dt.hour(), 0, 0).unwrap();
 
         // 简便起见，采用矩形积分
         map.entry(key)
@@ -53,14 +46,16 @@ async fn handle_submit(
             .or_insert(record.active_power);
     }
 
+    // TODO: 将 map 排序并放入 vector 中，以距离起始经过的时间为单位（以小时计）
+
     let ratio = if is_primary_load { ratio.unwrap() } else { 1.0 };
 
     // 将哈希表转换为向量
     let mut data = Vec::new();
     for (k, v) in map.iter() {
-        let time = format!("{}-{}-{} {}:00:00", k.year, k.month, k.day, k.hour);
+        let time = k.format("%Y-%m-%d %H:00:00").to_string();
 
-        let category = categorize_by_time(&k);
+        let category = categorize_by_datetime(&k);
         let r = match category {
             PeriodCategory::Peak => FigureRecord {
                 time,
@@ -80,7 +75,12 @@ async fn handle_submit(
                 off_peak: None,
                 sharp: Some(v / 4.0 * ratio),
             },
-            PeriodCategory::Other => continue,
+            PeriodCategory::Other => FigureRecord {
+                time,
+                peak: None,
+                off_peak: None,
+                sharp: None,
+            },
         };
 
         data.push(r);
