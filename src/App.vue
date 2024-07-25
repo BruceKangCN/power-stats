@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { LineChart } from 'echarts/charts';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
@@ -15,8 +15,8 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import { invoke } from '@tauri-apps/api';
 import { open } from '@tauri-apps/api/dialog';
+import { message } from 'ant-design-vue';
 
-// 基本都是抄的
 use([
   TitleComponent,
   TooltipComponent,
@@ -48,13 +48,33 @@ const formState = reactive<FormState>({
   filepath: '',
 })
 
-// 当前显示的标签页的 key
+/** 当前显示的标签页的 key */
 const activeKey = ref('1');
 
-// 以下配置基本都是抄的
-const powerOption = ref({
+/** 图表是否为加载中 */
+const spinning = ref(false);
+
+// 后端处理返回的全部功率、能耗数据
+const powerRecords = ref<unknown[]>([]);
+const workRecords = ref<unknown[]>([]);
+
+// TODO: 添加筛选器，根据月份筛选
+// 的经过筛选的数据，用于绘图
+const powerData = computed(() => powerRecords.value);
+const workData = computed(() => workRecords.value);
+
+// /**
+//  * 用于格式化图表信息中的数字的函数
+//  *
+//  * @deprecated 某些情况下会导致图表 tooltip 无法正常显示
+//  */
+// const numberFormatter = (value: number) => value.toFixed(4);
+
+const powerOption = reactive({
   legend: {},
-  tooltip: {},
+  tooltip: {
+    trigger: 'axis',
+  },
   toolbox: {
     feature: {
       saveAsImage: {
@@ -86,43 +106,51 @@ const powerOption = ref({
   series: [
     {
       type: 'line',
+      name: '晚谷瞬时功率',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '早峰瞬时功率',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '午谷瞬时功率',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '午峰瞬时功率',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '晚谷余量',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '午谷余量',
       smooth: true,
       connectNulls: true,
     },
   ],
   dataset: {
     dimensions: ['t', 'eo', 'mp', 'no', 'np', 'er', 'nr'],
-    source: [],
+    source: powerData,
   },
 });
-const workOption = ref({
+const workOption = reactive({
   legend: {},
-  tooltip: {},
+  tooltip: {
+    trigger: 'axis',
+  },
   toolbox: {
     feature: {
       saveAsImage: {
@@ -154,26 +182,42 @@ const workOption = ref({
   series: [
     {
       type: 'line',
+      name: '早峰能耗',
       smooth: true,
       connectNulls: true,
     },
     {
       type: 'line',
+      name: '午峰能耗',
       smooth: true,
       connectNulls: true,
     },
   ],
   dataset: {
     dimensions: ['d', 'm', 'n'],
-    source: [],
+    source: workData,
   },
 });
 
 // 获取表单数据并发往后端，后端返回绘制图表所需数据，然后利用数据绘图
 const onFinish = async (state: FormState) => {
-  const response: Response = await invoke('handle_submit', state as any);
-  powerOption.value.dataset.source = response.p as any;
-  workOption.value.dataset.source = response.w as any;
+  // 清除原有数据，相比直接覆盖显得较为美观
+  powerRecords.value = [];
+  workRecords.value = [];
+
+  spinning.value = true;
+
+  try {
+    const response: Response = await invoke('build_datasets', state as any);
+    powerRecords.value = response.p;
+    workRecords.value = response.w;
+  } catch (e) {
+    const msg = `数据处理发生错误：${e as string}`;
+    console.error(msg);
+    message.error(msg);
+  }
+
+  spinning.value = false;
 };
 
 const openFile = async () => {
@@ -249,11 +293,19 @@ const openFile = async () => {
   <a-tabs centered v-model:activeKey="activeKey">
 
     <a-tab-pane key="1" tab="功率图">
-      <v-chart class="chart" :option="powerOption" autoresize />
+
+      <a-spin :spinning="spinning">
+        <v-chart class="chart" :option="powerOption" autoresize />
+      </a-spin>
+
     </a-tab-pane>
 
     <a-tab-pane key="2" tab="能耗图">
-      <v-chart class="chart" :option="workOption" autoresize />
+
+      <a-spin :spinning="spinning">
+        <v-chart class="chart" :option="workOption" autoresize />
+      </a-spin>
+
     </a-tab-pane>
 
   </a-tabs>

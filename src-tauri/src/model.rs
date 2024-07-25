@@ -86,6 +86,8 @@ pub struct RespondData {
 }
 
 // 抄的，我也看不懂
+//
+// https://github.com/BurntSushi/rust-csv/issues/109#issuecomment-372709974
 fn default_if_empty<'de, D, T>(de: D) -> Result<T, D::Error>
 where
     D: serde::Deserializer<'de>,

@@ -16,8 +16,9 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// 根据前端提供的信息构建用于绘图的数据集
 #[tauri::command]
-async fn handle_submit(
+async fn build_datasets(
     rated_capacity: f64,
     is_primary_load: bool,
     factor: Option<f64>,
@@ -140,7 +141,7 @@ async fn handle_submit(
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, handle_submit])
+        .invoke_handler(tauri::generate_handler![greet, build_datasets])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
