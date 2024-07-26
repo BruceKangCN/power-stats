@@ -35,7 +35,6 @@ async fn build_datasets(
     for result in reader.deserialize() {
         let record: Record = result.or(Err("failed to deserialize record"))?;
 
-        // let dt = get_date_time(&record.time, &re);
         let dt = NaiveDateTime::parse_from_str(&record.time, "%Y-%m-%d %H:%M:%S")
             .expect("failed to parse datetime");
         let key = dt.date().and_hms_opt(dt.hour(), 0, 0).unwrap();
