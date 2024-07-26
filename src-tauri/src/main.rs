@@ -119,10 +119,25 @@ async fn build_datasets(
     // 填写能耗数据
     for day in start_point.date().iter_days().take((days + 1) as usize) {
         // 当前步骤所计算的日期的 0 时相对于起始时间点的时长，以小时为单位
-        let offset = (day.and_hms_opt(0, 0, 0).unwrap() - start_point).num_hours() as usize;
+        let offset = (day.and_hms_opt(0, 0, 0).unwrap() - start_point).num_hours();
 
-        let morning_peak = power_vec[(offset + 8)..(offset + 10)].iter().sum();
-        let noon_peak = power_vec[(offset + 13)..(offset + 16)].iter().sum();
+        let morning_peak = if offset + 10 < 0 {
+            0.0
+        } else {
+            let begin = (offset + 8).clamp(0, hours) as usize;
+            let end = std::cmp::min(offset + 10, hours) as usize;
+
+            power_vec[begin..end].iter().sum()
+        };
+
+        let noon_peak = if offset + 13 > hours {
+            0.0
+        } else {
+            let begin = std::cmp::max(offset + 13, 0) as usize;
+            let end = (offset + 16).clamp(0, hours) as usize;
+
+            power_vec[begin..end].iter().sum()
+        };
 
         work_data.push(WorkFigureRecord {
             date: day.format("%Y-%m-%d").to_string(),
