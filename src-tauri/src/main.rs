@@ -62,7 +62,6 @@ async fn build_datasets(
     }
 
     // 填写功率数据
-    let rated_capacity = rated_capacity * factor;
     let mut power_data = Vec::new();
     for h in 0..hours {
         let dt = start_point + TimeDelta::hours(h);
