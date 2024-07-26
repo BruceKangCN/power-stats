@@ -129,7 +129,7 @@ async fn build_datasets(
             let end = std::cmp::min(offset + 11 * 4 - 1, max_idx) as usize;
 
             power_vec[begin..end].iter().sum()
-        };
+        } * 0.25;
 
         let noon_peak = if offset + 13 * 4 > max_idx || offset + 17 * 4 <= 0 {
             0.0
@@ -138,7 +138,7 @@ async fn build_datasets(
             let end = std::cmp::min(offset + 17 * 4 - 1, max_idx) as usize;
 
             power_vec[begin..end].iter().sum()
-        };
+        } * 0.25;
 
         work_data.push(WorkFigureRecord {
             date: day.format("%Y-%m-%d").to_string(),
