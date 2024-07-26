@@ -42,8 +42,12 @@ async fn build_datasets(
     }
 
     // 将 map 排序并放入 vector 中
+    //
+    // 注：数据中可能有缺失的记录，所以不能直接将 map.len() 作为向量的长度，
+    // 而是应计算时间间隔进而计算向量长度。
     let start_point = map.keys().min().unwrap().to_owned();
-    let mut power_vec = vec![0.0; map.len()];
+    let time_delta = *map.keys().max().unwrap() - start_point;
+    let mut power_vec = vec![0.0; (time_delta.num_minutes() as usize) / 15 + 1];
     let factor = if is_primary_load {
         factor.unwrap()
     } else {
@@ -109,7 +113,6 @@ async fn build_datasets(
         });
     }
 
-    let time_delta = *map.keys().max().unwrap() - start_point;
     let days = time_delta.num_days();
     let mut work_data = Vec::new();
     // 填写能耗数据
