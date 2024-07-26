@@ -289,9 +289,6 @@ const onFinish = async (state: FormState) => {
   powerRecords.value = [];
   workRecords.value = [];
 
-  // 重置筛选器
-  month.value = 'all';
-
   spinning.value = true;
 
   try {
