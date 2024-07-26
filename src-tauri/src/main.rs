@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use chrono::{NaiveDateTime, TimeDelta, Timelike};
+use chrono::{NaiveDateTime, TimeDelta};
 use csv::Trim;
 use model::{PowerFigureRecord, Record, RespondData, WorkFigureRecord};
 use power_stats::{categorize_by_datetime, get_file_content, PeriodCategory};
@@ -37,73 +37,68 @@ async fn build_datasets(
 
         let dt = NaiveDateTime::parse_from_str(&record.time, "%Y-%m-%d %H:%M:%S")
             .expect("failed to parse datetime");
-        let key = dt.date().and_hms_opt(dt.hour(), 0, 0).unwrap();
 
-        // 简便起见，采用矩形积分
-        map.entry(key)
-            .and_modify(|value| *value += record.active_power)
-            .or_insert(record.active_power);
+        map.insert(dt, record.active_power);
     }
 
-    // 将 map 排序并放入 vector 中，以距离起始经过的时间为索引（以小时计）
+    // 将 map 排序并放入 vector 中
     let start_point = map.keys().min().unwrap().to_owned();
-    let time_delta = *map.keys().max().unwrap() - start_point;
-    let hours = time_delta.num_hours();
-    let mut power_vec = vec![0.0; (hours + 1) as usize];
+    let mut power_vec = vec![0.0; map.len()];
     let factor = if is_primary_load {
         factor.unwrap()
     } else {
         1.0
     };
     for (k, v) in map.iter() {
-        let idx = (*k - start_point).num_hours();
-        power_vec[idx as usize] = v / 4.0 * factor;
+        // 采样间隔为 15 分钟，所以索引值为经过的时间（以分钟为单位）除以 15
+        let idx = (*k - start_point).num_minutes() / 15;
+        power_vec[idx as usize] = *v * factor;
     }
 
     // 填写功率数据
     let mut power_data = Vec::new();
-    for h in 0..hours {
-        let dt = start_point + TimeDelta::hours(h);
+    for (i, p) in power_vec.iter().enumerate() {
+        let dt = start_point + TimeDelta::minutes((i as i64) * 15);
         let cat = categorize_by_datetime(&dt);
         power_data.push(match cat {
             PeriodCategory::EveningOffPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:00:00").to_string(),
-                evening_off_peak: Some(power_vec[h as usize]),
+                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
+                evening_off_peak: Some(*p),
                 morning_peak: None,
                 noon_off_peak: None,
                 noon_peak: None,
-                evening_remain: Some(rated_capacity - power_vec[h as usize]),
+                evening_remain: Some(rated_capacity - *p),
                 noon_remain: None,
             },
             PeriodCategory::MorningPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:00:00").to_string(),
+                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
                 evening_off_peak: None,
-                morning_peak: Some(power_vec[h as usize]),
+                morning_peak: Some(*p),
                 noon_off_peak: None,
                 noon_peak: None,
                 evening_remain: None,
                 noon_remain: None,
             },
             PeriodCategory::NoonOffPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:00:00").to_string(),
+                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
                 evening_off_peak: None,
                 morning_peak: None,
-                noon_off_peak: Some(power_vec[h as usize]),
+                noon_off_peak: Some(*p),
                 noon_peak: None,
                 evening_remain: None,
-                noon_remain: Some(rated_capacity - power_vec[h as usize]),
+                noon_remain: Some(rated_capacity - *p),
             },
             PeriodCategory::NoonPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:00:00").to_string(),
+                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
                 evening_off_peak: None,
                 morning_peak: None,
                 noon_off_peak: None,
-                noon_peak: Some(power_vec[h as usize]),
+                noon_peak: Some(*p),
                 evening_remain: None,
                 noon_remain: None,
             },
             PeriodCategory::Other => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:00:00").to_string(),
+                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
                 evening_off_peak: None,
                 morning_peak: None,
                 noon_off_peak: None,
@@ -114,27 +109,30 @@ async fn build_datasets(
         });
     }
 
+    let time_delta = *map.keys().max().unwrap() - start_point;
     let days = time_delta.num_days();
     let mut work_data = Vec::new();
     // 填写能耗数据
     for day in start_point.date().iter_days().take((days + 1) as usize) {
-        // 当前步骤所计算的日期的 0 时相对于起始时间点的时长，以小时为单位
-        let offset = (day.and_hms_opt(0, 0, 0).unwrap() - start_point).num_hours();
+        // 当前步骤所计算的日期的 0 时相对于起始时间点的时长，以 15 分钟为单位
+        let offset = (day.and_hms_opt(0, 0, 0).unwrap() - start_point).num_minutes() / 15;
 
-        let morning_peak = if offset + 10 < 0 {
+        let max_idx = (map.len() - 1) as i64;
+
+        let morning_peak = if offset + 8 * 4 > max_idx || offset + 11 * 4 <= 0 {
             0.0
         } else {
-            let begin = (offset + 8).clamp(0, hours) as usize;
-            let end = std::cmp::min(offset + 10, hours) as usize;
+            let begin = std::cmp::max(offset + 8 * 4, 0) as usize;
+            let end = std::cmp::min(offset + 11 * 4 - 1, max_idx) as usize;
 
             power_vec[begin..end].iter().sum()
         };
 
-        let noon_peak = if offset + 13 > hours {
+        let noon_peak = if offset + 13 * 4 > max_idx || offset + 17 * 4 <= 0 {
             0.0
         } else {
-            let begin = std::cmp::max(offset + 13, 0) as usize;
-            let end = (offset + 16).clamp(0, hours) as usize;
+            let begin = std::cmp::max(offset + 13 * 4, 0) as usize;
+            let end = std::cmp::min(offset + 17 * 4 - 1, max_idx) as usize;
 
             power_vec[begin..end].iter().sum()
         };
