@@ -16,6 +16,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { invoke } from '@tauri-apps/api';
 import { open } from '@tauri-apps/api/dialog';
 import { message } from 'ant-design-vue';
+import type { SelectProps } from 'ant-design-vue';
 
 use([
   TitleComponent,
@@ -54,14 +55,97 @@ const activeKey = ref('1');
 /** 图表是否为加载中 */
 const spinning = ref(false);
 
+/** 侧边栏是否打开，注：不要使用 `open` 作为变量名，会与 tauri-api 中的函数同名 */
+const isDrawerOpen = ref(false);
+
+/** 曲线是否进行平滑处理 */
+const smooth = ref(true);
+
+/** 筛选的月份 */
+const month = ref('all');
+
+const monthOptions = ref<SelectProps['options']>([
+  {
+    value: 'all',
+    label: '全部',
+  },
+  {
+    value: '01',
+    label: '1',
+  },
+  {
+    value: '02',
+    label: '2',
+  },
+  {
+    value: '03',
+    label: '3',
+  },
+  {
+    value: '04',
+    label: '4',
+  },
+  {
+    value: '05',
+    label: '5',
+  },
+  {
+    value: '06',
+    label: '6',
+  },
+  {
+    value: '07',
+    label: '7',
+  },
+  {
+    value: '08',
+    label: '8',
+  },
+  {
+    value: '09',
+    label: '9',
+  },
+  {
+    value: '10',
+    label: '10',
+  },
+  {
+    value: '11',
+    label: '11',
+  },
+  {
+    value: '12',
+    label: '12',
+  },
+]);
+
 // 后端处理返回的全部功率、能耗数据
 const powerRecords = ref<unknown[]>([]);
 const workRecords = ref<unknown[]>([]);
 
-// TODO: 添加筛选器，根据月份筛选
 // 的经过筛选的数据，用于绘图
-const powerData = computed(() => powerRecords.value);
-const workData = computed(() => workRecords.value);
+const powerData = computed(() => {
+  if (powerRecords.value.length === 0) {
+    return [];
+  }
+
+  if (month.value === 'all') {
+    return powerRecords.value;
+  }
+
+  return powerRecords.value.filter((r) => (r as any).t.slice(5, 7) === month.value);
+});
+const workData = computed(() => {
+  if (workRecords.value.length === 0) {
+    return [];
+  }
+
+  if (month.value === 'all') {
+    return workRecords.value;
+  }
+
+  return workRecords.value.filter((r) => (r as any).d.slice(5, 7) === month.value);
+});
 
 // /**
 //  * 用于格式化图表信息中的数字的函数
@@ -107,37 +191,37 @@ const powerOption = reactive({
     {
       type: 'line',
       name: '晚谷瞬时功率',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '早峰瞬时功率',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '午谷瞬时功率',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '午峰瞬时功率',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '晚谷余量',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '午谷余量',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
   ],
@@ -183,13 +267,13 @@ const workOption = reactive({
     {
       type: 'line',
       name: '早峰能耗',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
     {
       type: 'line',
       name: '午峰能耗',
-      smooth: true,
+      smooth: smooth,
       connectNulls: true,
     },
   ],
@@ -204,6 +288,9 @@ const onFinish = async (state: FormState) => {
   // 清除原有数据，相比直接覆盖显得较为美观
   powerRecords.value = [];
   workRecords.value = [];
+
+  // 重置筛选器
+  month.value = 'all';
 
   spinning.value = true;
 
@@ -242,6 +329,7 @@ const openFile = async () => {
     autocomplete="off"
     @finish="onFinish"
   >
+
     <a-form-item
       label="变压器额定容量"
       name="ratedCapacity"
@@ -284,8 +372,15 @@ const openFile = async () => {
     <a-form-item
       :wrapper-col="{ offset: 6, span: 16}"
     >
+      <a-button
+        @click="() => isDrawerOpen = true"
+        style="margin-right: 10px"
+      >
+        选项
+      </a-button>
       <a-button type="primary" html-type="submit">确认</a-button>
     </a-form-item>
+
   </a-form>
   <!-- end: 表单区域 -->
 
@@ -310,6 +405,33 @@ const openFile = async () => {
 
   </a-tabs>
   <!-- end: 图表展示区域 -->
+
+  <!-- begin: 选项区域 -->
+  <a-drawer v-model:open="isDrawerOpen" placement="left">
+
+    <a-form name="figure-settings">
+
+      <a-form-item
+        label="曲线平滑"
+        name="smooth"
+      >
+        <a-switch v-model:checked="smooth" />
+      </a-form-item>
+
+      <a-form-item
+        label="月份"
+        name="month"
+      >
+        <a-select
+          v-model:value="month"
+          :options="monthOptions"
+        />
+      </a-form-item>
+
+    </a-form>
+
+  </a-drawer>
+  <!-- end: 选项区域 -->
 </template>
 
 <style scoped>
@@ -319,7 +441,6 @@ const openFile = async () => {
   border: none;
   border-radius: 0.5rem;
 }
-
 
 .chart {
   width: 100%;
