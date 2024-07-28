@@ -170,13 +170,23 @@ const powerOption = reactive({
   },
   dataZoom: [
     {
-      id: 'dataZoomX',
+      id: 'dataZoomXSlider',
       type: 'slider',
       xAxisIndex: [0],
     },
     {
-      id: 'dataZoomY',
+      id: 'dataZoomYSlider',
       type: 'slider',
+      yAxisIndex: [0],
+    },
+    {
+      id: 'dataZoomXInside',
+      type: 'inside',
+      xAxisIndex: [0],
+    },
+    {
+      id: 'dataZoomYInside',
+      type: 'inside',
       yAxisIndex: [0],
     },
   ],
@@ -246,13 +256,23 @@ const workOption = reactive({
   },
   dataZoom: [
     {
-      id: 'dataZoomX',
+      id: 'dataZoomXSlider',
       type: 'slider',
       xAxisIndex: [0],
     },
     {
-      id: 'dataZoomY',
+      id: 'dataZoomYSlider',
       type: 'slider',
+      yAxisIndex: [0],
+    },
+    {
+      id: 'dataZoomXInside',
+      type: 'inside',
+      xAxisIndex: [0],
+    },
+    {
+      id: 'dataZoomYInside',
+      type: 'inside',
       yAxisIndex: [0],
     },
   ],
