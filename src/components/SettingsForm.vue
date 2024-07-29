@@ -64,24 +64,24 @@ const monthOptions = ref<SelectProps['options']>([
 </script>
 
 <template>
-    <a-form name="figure-settings">
+  <AForm name="figure-settings">
 
-      <a-form-item
-        label="曲线平滑"
-        name="smooth"
-      >
-        <a-switch v-model:checked="store.smooth" />
-      </a-form-item>
+    <AFormItem
+      label="曲线平滑"
+      name="smooth"
+    >
+      <ASwitch v-model:checked="store.smooth" />
+    </AFormItem>
 
-      <a-form-item
-        label="月份"
-        name="month"
-      >
-        <a-select
-          v-model:value="store.month"
-          :options="monthOptions"
-        />
-      </a-form-item>
+    <AFormItem
+      label="月份"
+      name="month"
+    >
+      <ASelect
+        v-model:value="store.month"
+        :options="monthOptions"
+      />
+    </AFormItem>
 
-    </a-form>
+  </AForm>
 </template>

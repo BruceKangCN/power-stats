@@ -21,6 +21,6 @@ declare module 'vue' {
     ATabs: typeof import('ant-design-vue/es')['Tabs']
     FigureZone: typeof import('./src/components/FigureZone.vue')['default']
     MainForm: typeof import('./src/components/MainForm.vue')['default']
-    SettingsPage: typeof import('./src/components/SettingsPage.vue')['default']
+    SettingsForm: typeof import('./src/components/SettingsForm.vue')['default']
   }
 }

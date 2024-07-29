@@ -3,9 +3,9 @@ import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api';
 import { message } from 'ant-design-vue';
 import MainForm, { FormState } from './components/MainForm.vue';
-import SettingsPage from './components/SettingsPage.vue';
+import SettingsForm from './components/SettingsForm.vue';
 import FigureZone from './components/FigureZone.vue';
-import { useSettingsStore } from './stores/settings';
+import { useSettingsStore } from './stores/settings.ts';
 import { storeToRefs } from 'pinia';
 
 interface Response {
@@ -86,6 +86,6 @@ const requestFigureData = async (state: FormState) => {
   />
 
   <ADrawer v-model:open="isDrawerOpen" placement="left">
-    <SettingsPage />
+    <SettingsForm />
   </ADrawer>
 </template>

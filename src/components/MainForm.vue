@@ -31,7 +31,7 @@ const openFile = async () => {
 </script>
 
 <template>
-  <a-form
+  <AForm
     :model="formState"
     name="form"
     :label-col="{ span: 6 }"
@@ -40,56 +40,56 @@ const openFile = async () => {
     @finish="$emit('submit', formState)"
   >
 
-    <a-form-item
+    <AFormItem
       label="变压器额定容量"
       name="ratedCapacity"
       :rules="[{ required: true, message: '请输入额定容量' }]"
     >
-      <a-input-number v-model:value="formState.ratedCapacity" />
-    </a-form-item>
+      <AInputNumber v-model:value="formState.ratedCapacity" />
+    </AFormItem>
 
-    <a-form-item
+    <AFormItem
       label="是否为一次负荷"
       name="isPrimaryLoad"
       :rules="[{ required: true, message: '请选择是否为一次负荷' }]"
     >
-      <a-switch v-model:checked="formState.isPrimaryLoad" />
-    </a-form-item>
+      <ASwitch v-model:checked="formState.isPrimaryLoad" />
+    </AFormItem>
 
-    <a-form-item
+    <AFormItem
       label="倍率"
       name="factor"
       :rules="[{ required: formState.isPrimaryLoad, message: '一次负荷需填写倍率' }]"
     >
-      <a-input-number v-model:value="formState.factor" />
-    </a-form-item>
+      <AInputNumber v-model:value="formState.factor" />
+    </AFormItem>
 
-    <a-form-item
+    <AFormItem
       label="数据源"
       name="filepath"
       :rules="[{ required: true, message: '请选择数据文件' }]"
     >
-      <a-space>
-        <a-input
+      <ASpace>
+        <AInput
           id="file-selector"
           v-model:value="formState.filepath"
           placeholder="文件路径"
         />
-        <a-button @click="openFile">...</a-button>
-      </a-space>
-    </a-form-item>
+        <AButton @click="openFile">...</AButton>
+      </ASpace>
+    </AFormItem>
 
-    <a-form-item
+    <AFormItem
       :wrapper-col="{ offset: 6, span: 16}"
     >
-      <a-button
+      <AButton
         @click="$emit('requireOpenDrawer')"
         style="margin-right: 10px"
       >
         选项
-      </a-button>
-      <a-button type="primary" html-type="submit">确认</a-button>
-    </a-form-item>
+      </AButton>
+      <AButton type="primary" html-type="submit">确认</AButton>
+    </AFormItem>
 
-  </a-form>
+  </AForm>
 </template>
