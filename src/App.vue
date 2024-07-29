@@ -1,56 +1,17 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
-import { LineChart } from 'echarts/charts';
-import VChart from 'vue-echarts';
-import { use } from 'echarts/core';
-import {
-  TitleComponent,
-  TooltipComponent,
-  ToolboxComponent,
-  LegendComponent,
-  GridComponent,
-  DatasetComponent,
-  DataZoomComponent,
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers';
+import { computed, ref } from 'vue';
 import { invoke } from '@tauri-apps/api';
-import { open } from '@tauri-apps/api/dialog';
 import { message } from 'ant-design-vue';
-import type { SelectProps } from 'ant-design-vue';
-
-use([
-  TitleComponent,
-  TooltipComponent,
-  ToolboxComponent,
-  LegendComponent,
-  GridComponent,
-  DatasetComponent,
-  DataZoomComponent,
-  LineChart,
-  CanvasRenderer,
-]);
-
-interface FormState {
-  ratedCapacity: number; // 额定容量
-  isPrimaryLoad: boolean; // 是否为一次负荷
-  factor?: number; // 倍率
-  filepath: string; // 数据文件路径
-}
+import MainForm, { FormState } from './components/MainForm.vue';
+import SettingsPage from './components/SettingsPage.vue';
+import FigureZone from './components/FigureZone.vue';
+import { useSettingsStore } from './stores/settings';
+import { storeToRefs } from 'pinia';
 
 interface Response {
   p: unknown[]; // 功率绘图数据
   w: unknown[]; // 能耗绘图数据
 }
-
-const formState = reactive<FormState>({
-  ratedCapacity: 0.0,
-  isPrimaryLoad: true,
-  factor: 1.0,
-  filepath: '',
-})
-
-/** 当前显示的标签页的 key */
-const activeKey = ref('1');
 
 /** 图表是否为加载中 */
 const spinning = ref(false);
@@ -58,70 +19,12 @@ const spinning = ref(false);
 /** 侧边栏是否打开，注：不要使用 `open` 作为变量名，会与 tauri-api 中的函数同名 */
 const isDrawerOpen = ref(false);
 
-/** 曲线是否进行平滑处理 */
-const smooth = ref(true);
-
-/** 筛选的月份 */
-const month = ref('all');
-
-const monthOptions = ref<SelectProps['options']>([
-  {
-    value: 'all',
-    label: '全部',
-  },
-  {
-    value: '01',
-    label: '1',
-  },
-  {
-    value: '02',
-    label: '2',
-  },
-  {
-    value: '03',
-    label: '3',
-  },
-  {
-    value: '04',
-    label: '4',
-  },
-  {
-    value: '05',
-    label: '5',
-  },
-  {
-    value: '06',
-    label: '6',
-  },
-  {
-    value: '07',
-    label: '7',
-  },
-  {
-    value: '08',
-    label: '8',
-  },
-  {
-    value: '09',
-    label: '9',
-  },
-  {
-    value: '10',
-    label: '10',
-  },
-  {
-    value: '11',
-    label: '11',
-  },
-  {
-    value: '12',
-    label: '12',
-  },
-]);
-
 // 后端处理返回的全部功率、能耗数据
 const powerRecords = ref<unknown[]>([]);
 const workRecords = ref<unknown[]>([]);
+
+const settingsStore = useSettingsStore();
+const { smooth, month } = storeToRefs(settingsStore);
 
 // 的经过筛选的数据，用于绘图
 const powerData = computed(() => {
@@ -147,164 +50,8 @@ const workData = computed(() => {
   return workRecords.value.filter((r) => (r as any).d.slice(5, 7) === month.value);
 });
 
-// /**
-//  * 用于格式化图表信息中的数字的函数
-//  *
-//  * @deprecated 某些情况下会导致图表 tooltip 无法正常显示
-//  */
-// const numberFormatter = (value: number) => value.toFixed(4);
-
-const powerOption = reactive({
-  legend: {},
-  tooltip: {
-    trigger: 'axis',
-  },
-  toolbox: {
-    feature: {
-      saveAsImage: {
-        name: 'figure',
-        excludeComponents: ['tooltip', 'toolbox', 'dataZoom'],
-      },
-      dataZoom: {},
-    },
-  },
-  dataZoom: [
-    {
-      id: 'dataZoomXSlider',
-      type: 'slider',
-      xAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomYSlider',
-      type: 'slider',
-      yAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomXInside',
-      type: 'inside',
-      xAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomYInside',
-      type: 'inside',
-      yAxisIndex: [0],
-    },
-  ],
-  xAxis: {
-    // `type` 设为 `time` 时经常会有各种莫名其妙的问题，所以此处使用 `category`
-    type: 'category',
-  },
-  yAxis: {
-    type: 'value',
-  },
-  series: [
-    {
-      type: 'line',
-      name: '晚谷瞬时功率',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '早峰瞬时功率',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '午谷瞬时功率',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '午峰瞬时功率',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '晚谷余量',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '午谷余量',
-      smooth: smooth,
-      connectNulls: true,
-    },
-  ],
-  dataset: {
-    dimensions: ['t', 'eo', 'mp', 'no', 'np', 'er', 'nr'],
-    source: powerData,
-  },
-});
-const workOption = reactive({
-  legend: {},
-  tooltip: {
-    trigger: 'axis',
-  },
-  toolbox: {
-    feature: {
-      saveAsImage: {
-        name: 'figure',
-        excludeComponents: ['tooltip', 'toolbox', 'dataZoom'],
-      },
-      dataZoom: {},
-    },
-  },
-  dataZoom: [
-    {
-      id: 'dataZoomXSlider',
-      type: 'slider',
-      xAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomYSlider',
-      type: 'slider',
-      yAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomXInside',
-      type: 'inside',
-      xAxisIndex: [0],
-    },
-    {
-      id: 'dataZoomYInside',
-      type: 'inside',
-      yAxisIndex: [0],
-    },
-  ],
-  xAxis: {
-    // `type` 设为 `time` 时经常会有各种莫名其妙的问题，所以此处使用 `category`
-    type: 'category',
-  },
-  yAxis: {
-    type: 'value',
-  },
-  series: [
-    {
-      type: 'line',
-      name: '早峰能耗',
-      smooth: smooth,
-      connectNulls: true,
-    },
-    {
-      type: 'line',
-      name: '午峰能耗',
-      smooth: smooth,
-      connectNulls: true,
-    },
-  ],
-  dataset: {
-    dimensions: ['d', 'm', 'n'],
-    source: workData,
-  },
-});
-
 // 获取表单数据并发往后端，后端返回绘制图表所需数据，然后利用数据绘图
-const onFinish = async (state: FormState) => {
+const requestFigureData = async (state: FormState) => {
   // 清除原有数据，相比直接覆盖显得较为美观
   powerRecords.value = [];
   workRecords.value = [];
@@ -323,144 +70,22 @@ const onFinish = async (state: FormState) => {
 
   spinning.value = false;
 };
-
-const openFile = async () => {
-  const filepath = await open();
-  if (filepath) {
-    if (typeof(filepath) == 'string') {
-      formState.filepath = filepath;
-    } else {
-      formState.filepath = filepath[0];
-    }
-  }
-};
 </script>
 
 <template>
-  <!-- begin: 表单区域 -->
-  <a-form
-    :model="formState"
-    name="form"
-    :label-col="{ span: 6 }"
-    :wrapper-col="{ span: 16 }"
-    autocomplete="off"
-    @finish="onFinish"
-  >
+  <MainForm
+    @submit="requestFigureData"
+    @requireOpenDrawer="() => isDrawerOpen = true"
+  />
 
-    <a-form-item
-      label="变压器额定容量"
-      name="ratedCapacity"
-      :rules="[{ required: true, message: '请输入额定容量' }]"
-    >
-      <a-input-number v-model:value="formState.ratedCapacity" />
-    </a-form-item>
+  <FigureZone
+    :power-data="powerData"
+    :work-data="workData"
+    :smooth="smooth"
+    :spinning="spinning"
+  />
 
-    <a-form-item
-      label="是否为一次负荷"
-      name="isPrimaryLoad"
-      :rules="[{ required: true, message: '请选择是否为一次负荷' }]"
-    >
-      <a-switch v-model:checked="formState.isPrimaryLoad" />
-    </a-form-item>
-
-    <a-form-item
-      label="倍率"
-      name="factor"
-      :rules="[{ required: formState.isPrimaryLoad, message: '一次负荷需填写倍率' }]"
-    >
-      <a-input-number v-model:value="formState.factor" />
-    </a-form-item>
-
-    <a-form-item
-      label="数据源"
-      name="filepath"
-      :rules="[{ required: true, message: '请选择数据文件' }]"
-    >
-      <a-space>
-        <a-input
-          id="file-selector"
-          v-model:value="formState.filepath"
-          placeholder="文件路径"
-        />
-        <a-button @click="openFile">...</a-button>
-      </a-space>
-    </a-form-item>
-
-    <a-form-item
-      :wrapper-col="{ offset: 6, span: 16}"
-    >
-      <a-button
-        @click="() => isDrawerOpen = true"
-        style="margin-right: 10px"
-      >
-        选项
-      </a-button>
-      <a-button type="primary" html-type="submit">确认</a-button>
-    </a-form-item>
-
-  </a-form>
-  <!-- end: 表单区域 -->
-
-  <!-- begin: 图表展示区域，以标签页分割 -->
-  <a-tabs centered v-model:activeKey="activeKey">
-
-    <a-tab-pane key="1" tab="功率图">
-
-      <a-spin :spinning="spinning">
-        <v-chart class="chart" :option="powerOption" autoresize />
-      </a-spin>
-
-    </a-tab-pane>
-
-    <a-tab-pane key="2" tab="能耗图">
-
-      <a-spin :spinning="spinning">
-        <v-chart class="chart" :option="workOption" autoresize />
-      </a-spin>
-
-    </a-tab-pane>
-
-  </a-tabs>
-  <!-- end: 图表展示区域 -->
-
-  <!-- begin: 选项区域 -->
-  <a-drawer v-model:open="isDrawerOpen" placement="left">
-
-    <a-form name="figure-settings">
-
-      <a-form-item
-        label="曲线平滑"
-        name="smooth"
-      >
-        <a-switch v-model:checked="smooth" />
-      </a-form-item>
-
-      <a-form-item
-        label="月份"
-        name="month"
-      >
-        <a-select
-          v-model:value="month"
-          :options="monthOptions"
-        />
-      </a-form-item>
-
-    </a-form>
-
-  </a-drawer>
-  <!-- end: 选项区域 -->
+  <ADrawer v-model:open="isDrawerOpen" placement="left">
+    <SettingsPage />
+  </ADrawer>
 </template>
-
-<style scoped>
-#file-selector::file-selector-button {
-  color: white;
-  background-color: #1677FF;
-  border: none;
-  border-radius: 0.5rem;
-}
-
-.chart {
-  width: 100%;
-  height: calc(100vh - 360px);
-}
-</style>

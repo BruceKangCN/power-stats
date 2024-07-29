@@ -19,5 +19,8 @@ declare module 'vue' {
     ASwitch: typeof import('ant-design-vue/es')['Switch']
     ATabPane: typeof import('ant-design-vue/es')['TabPane']
     ATabs: typeof import('ant-design-vue/es')['Tabs']
+    FigureZone: typeof import('./src/components/FigureZone.vue')['default']
+    MainForm: typeof import('./src/components/MainForm.vue')['default']
+    SettingsPage: typeof import('./src/components/SettingsPage.vue')['default']
   }
 }
