@@ -1,9 +1,11 @@
 [package]
 name = "power-stats"
 version = "1.0.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A power statistic app"
+authors = ["Bruce Kang <brucekangcn@gmail.com>"]
+license = "MIT"
 edition = "2021"
+repository = "https://github.com/BruceKangCN/power-stats"
 
 [profile.release]
 lto = true
