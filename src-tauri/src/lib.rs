@@ -121,15 +121,11 @@ pub fn get_power_data(
 }
 
 /// 生成能耗数据
-pub fn get_work_data(
-    power_vec: &Vec<f64>,
-    start_point: &NaiveDateTime,
-    time_delta: &TimeDelta,
-) -> Vec<WorkFigureRecord> {
+pub fn get_work_data(power_vec: &Vec<f64>, start_point: &NaiveDateTime) -> Vec<WorkFigureRecord> {
     let start_point = *start_point;
-    let time_delta = *time_delta;
+    let end_point = start_point + TimeDelta::minutes(((power_vec.len() as i64) - 1) * 15);
 
-    let days = time_delta.num_days();
+    let days = (end_point.date() - start_point.date()).num_days();
     let mut work_data = Vec::new();
     // 填写能耗数据
     for day in start_point.date().iter_days().take((days + 1) as usize) {

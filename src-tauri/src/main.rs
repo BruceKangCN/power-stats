@@ -42,7 +42,7 @@ async fn build_datasets(
     }
 
     let power_data = get_power_data(&power_vec, &start_point, rated_capacity);
-    let work_data = get_work_data(&power_vec, &start_point, &time_delta);
+    let work_data = get_work_data(&power_vec, &start_point);
 
     Ok(RespondData {
         power_data,
