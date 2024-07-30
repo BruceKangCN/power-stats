@@ -1,20 +1,9 @@
 import { defineConfig } from "vite";
-import Components from "unplugin-vue-components/vite";
-import { AntDesignVueResolver } from "unplugin-vue-components/resolvers";
-import vue from "@vitejs/plugin-vue";
+import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [
-    vue(),
-    Components({
-      resolvers: [
-        AntDesignVueResolver({
-          importStyle: false,
-        }),
-      ],
-    }),
-  ],
+  plugins: [react()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

@@ -7,9 +7,9 @@
 使用 Tauri 应用框架搭建，前端使用 TypeScript 语言，后端使用 Rust 语言。
 
 前端：
-- 框架：Vue 3
-- UI：Ant Design Vue
-- 图表：Apache ECharts
+- 框架：React
+- UI：Ant Design
+- 图表：Plotly.js
 
 后端：
 - 框架：Tauri
