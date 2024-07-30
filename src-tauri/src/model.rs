@@ -15,6 +15,13 @@ pub struct Record {
     // pub apparent_power: f64,
 }
 
+/// 用于提供给 Plotly.JS 进行绘图的数据
+#[derive(Default, Debug, Serialize)]
+pub struct Series {
+    pub x: Vec<String>, // 横坐标数值（日期/时间）
+    pub y: Vec<f64>,    // 纵坐标数值（功率/能耗）
+}
+
 /// 用于绘制功率图表的数据
 ///
 /// 注：字段通过 rename 进行简写以优化传输、解析性能
@@ -29,29 +36,26 @@ pub struct Record {
 ///     - 峰时功率：p (peak)
 ///     - 谷时功率：o (off peak)
 ///     - 谷时余量：r (remain)
-#[derive(Debug, Serialize)]
-pub struct PowerFigureRecord {
-    /// 时间
-    #[serde(rename = "t")]
-    pub time: String,
+#[derive(Default, Debug, Serialize)]
+pub struct PowerRecords {
     /// 晚谷时功率
     #[serde(rename = "eo")]
-    pub evening_off_peak: Option<f64>,
+    pub evening_off_peak: Series,
     /// 早峰时功率
     #[serde(rename = "mp")]
-    pub morning_peak: Option<f64>,
+    pub morning_peak: Series,
     /// 午谷时功率
     #[serde(rename = "no")]
-    pub noon_off_peak: Option<f64>,
+    pub noon_off_peak: Series,
     /// 午峰时功率
     #[serde(rename = "np")]
-    pub noon_peak: Option<f64>,
+    pub noon_peak: Series,
     /// 晚谷时余量
     #[serde(rename = "er")]
-    pub evening_remain: Option<f64>,
+    pub evening_remain: Series,
     /// 午谷时余量
     #[serde(rename = "nr")]
-    pub noon_remain: Option<f64>,
+    pub noon_remain: Series,
 }
 
 /// 用于绘制能耗图表的数据
@@ -63,26 +67,23 @@ pub struct PowerFigureRecord {
 /// 时段：
 ///     - 早：m (morning)
 ///     - 午：n (noon)
-#[derive(Debug, Serialize)]
-pub struct WorkFigureRecord {
-    /// 时间
-    #[serde(rename = "d")]
-    pub date: String,
+#[derive(Default, Debug, Serialize)]
+pub struct WorkRecords {
     /// 早峰时能耗
     #[serde(rename = "m")]
-    pub morning_peak: f64,
+    pub morning_peak: Series,
     /// 午峰时能耗
     #[serde(rename = "n")]
-    pub noon_peak: f64,
+    pub noon_peak: Series,
 }
 
 /// 发回前端的数据
-#[derive(Debug, Serialize)]
-pub struct RespondData {
+#[derive(Default, Debug, Serialize)]
+pub struct Response {
     #[serde(rename = "p")]
-    pub power_data: Vec<PowerFigureRecord>,
+    pub power_records: PowerRecords,
     #[serde(rename = "w")]
-    pub work_data: Vec<WorkFigureRecord>,
+    pub work_records: WorkRecords,
 }
 
 // 抄的，我也看不懂

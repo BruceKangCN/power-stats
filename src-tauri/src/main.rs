@@ -1,8 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use power_stats::model::RespondData;
-use power_stats::{get_file_content, get_power_data, get_work_data, map_records};
+use power_stats::model::Response;
+use power_stats::{build_power_records, build_work_records, get_file_content, map_records};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -10,14 +10,14 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-/// 根据前端提供的信息构建用于绘图的数据集
+/// 根据前端提供的信息构建用于绘图的数据
 #[tauri::command]
-async fn build_datasets(
+async fn build_series(
     rated_capacity: f64,
     is_primary_load: bool,
     factor: Option<f64>,
     filepath: String,
-) -> Result<RespondData, String> {
+) -> Result<Response, String> {
     let content = get_file_content(&filepath)?;
     let map = map_records(&content)?;
 
@@ -41,18 +41,18 @@ async fn build_datasets(
         power_vec[idx as usize] = *v * factor;
     }
 
-    let power_data = get_power_data(&power_vec, &start_point, rated_capacity);
-    let work_data = get_work_data(&power_vec, &start_point);
+    let power_records = build_power_records(&power_vec, &start_point, rated_capacity);
+    let work_records = build_work_records(&power_vec, &start_point);
 
-    Ok(RespondData {
-        power_data,
-        work_data,
+    Ok(Response {
+        power_records,
+        work_records,
     })
 }
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, build_datasets])
+        .invoke_handler(tauri::generate_handler![greet, build_series,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

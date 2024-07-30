@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use chrono::{NaiveDateTime, TimeDelta, Timelike};
 use csv::Trim;
-use model::{PowerFigureRecord, Record, WorkFigureRecord};
+use model::{PowerRecords, Record, Series, WorkRecords};
 
 pub mod model;
 
@@ -56,79 +56,69 @@ pub fn map_records(content: &str) -> Result<HashMap<NaiveDateTime, f64>, String>
 }
 
 /// 生成功率数据
-pub fn get_power_data(
+pub fn build_power_records(
     power_vec: &Vec<f64>,
     start_point: &NaiveDateTime,
     rated_capacity: f64,
-) -> Vec<PowerFigureRecord> {
-    let mut power_data = Vec::new();
+) -> PowerRecords {
+    let mut evening_off_peak = Series::default();
+    let mut morning_peak = Series::default();
+    let mut noon_off_peak = Series::default();
+    let mut noon_peak = Series::default();
+    let mut evening_remain = Series::default();
+    let mut noon_remain = Series::default();
 
     let start_point = *start_point;
     for (i, p) in power_vec.iter().enumerate() {
         let dt = start_point + TimeDelta::minutes((i as i64) * 15);
-        let cat = categorize_by_datetime(&dt);
+        let dt_str = dt.format("%Y-%m-%d %H:%M:00").to_string();
 
-        power_data.push(match cat {
-            PeriodCategory::EveningOffPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
-                evening_off_peak: Some(*p),
-                morning_peak: None,
-                noon_off_peak: None,
-                noon_peak: None,
-                evening_remain: Some(rated_capacity - *p),
-                noon_remain: None,
-            },
-            PeriodCategory::MorningPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
-                evening_off_peak: None,
-                morning_peak: Some(*p),
-                noon_off_peak: None,
-                noon_peak: None,
-                evening_remain: None,
-                noon_remain: None,
-            },
-            PeriodCategory::NoonOffPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
-                evening_off_peak: None,
-                morning_peak: None,
-                noon_off_peak: Some(*p),
-                noon_peak: None,
-                evening_remain: None,
-                noon_remain: Some(rated_capacity - *p),
-            },
-            PeriodCategory::NoonPeak => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
-                evening_off_peak: None,
-                morning_peak: None,
-                noon_off_peak: None,
-                noon_peak: Some(*p),
-                evening_remain: None,
-                noon_remain: None,
-            },
-            PeriodCategory::Normal => PowerFigureRecord {
-                time: dt.format("%Y-%m-%d %H:%M:00").to_string(),
-                evening_off_peak: None,
-                morning_peak: None,
-                noon_off_peak: None,
-                noon_peak: None,
-                evening_remain: None,
-                noon_remain: None,
-            },
-        });
+        match categorize_by_datetime(&dt) {
+            PeriodCategory::EveningOffPeak => {
+                evening_off_peak.x.push(dt_str.to_owned());
+                evening_off_peak.y.push(*p);
+                evening_remain.x.push(dt_str.to_owned());
+                evening_remain.y.push(rated_capacity - *p);
+            }
+            PeriodCategory::MorningPeak => {
+                morning_peak.x.push(dt_str.to_owned());
+                morning_peak.y.push(*p);
+            }
+            PeriodCategory::NoonOffPeak => {
+                noon_off_peak.x.push(dt_str.to_owned());
+                noon_off_peak.y.push(*p);
+                noon_remain.x.push(dt_str.to_owned());
+                noon_remain.y.push(rated_capacity - *p);
+            }
+            PeriodCategory::NoonPeak => {
+                noon_peak.x.push(dt_str.to_owned());
+                noon_peak.y.push(*p);
+            }
+            PeriodCategory::Normal => continue,
+        };
     }
 
-    power_data
+    PowerRecords {
+        evening_off_peak,
+        morning_peak,
+        noon_off_peak,
+        noon_peak,
+        evening_remain,
+        noon_remain,
+    }
 }
 
 /// 生成能耗数据
-pub fn get_work_data(power_vec: &Vec<f64>, start_point: &NaiveDateTime) -> Vec<WorkFigureRecord> {
+pub fn build_work_records(power_vec: &Vec<f64>, start_point: &NaiveDateTime) -> WorkRecords {
     let start_point = *start_point;
     let end_point = start_point + TimeDelta::minutes(((power_vec.len() as i64) - 1) * 15);
 
     let days = (end_point.date() - start_point.date()).num_days();
-    let mut work_data = Vec::new();
+    let mut work_records = WorkRecords::default();
     // 填写能耗数据
     for day in start_point.date().iter_days().take((days + 1) as usize) {
+        let date_str = day.format("%Y-%m-%d").to_string();
+
         // 当前步骤所计算的日期的 0 时相对于起始时间点的时长，以 15 分钟为单位
         let offset = (day.and_hms_opt(0, 0, 0).unwrap() - start_point).num_minutes() / 15;
 
@@ -142,6 +132,8 @@ pub fn get_work_data(power_vec: &Vec<f64>, start_point: &NaiveDateTime) -> Vec<W
 
             power_vec[begin..end].iter().sum::<f64>() * 0.25
         };
+        work_records.morning_peak.x.push(date_str.to_owned());
+        work_records.morning_peak.y.push(morning_peak);
 
         let noon_peak = if offset + 13 * 4 > max_idx || offset + 17 * 4 <= 0 {
             0.0
@@ -151,15 +143,11 @@ pub fn get_work_data(power_vec: &Vec<f64>, start_point: &NaiveDateTime) -> Vec<W
 
             power_vec[begin..end].iter().sum::<f64>() * 0.25
         };
-
-        work_data.push(WorkFigureRecord {
-            date: day.format("%Y-%m-%d").to_string(),
-            morning_peak,
-            noon_peak,
-        });
+        work_records.noon_peak.x.push(date_str.to_owned());
+        work_records.noon_peak.y.push(noon_peak);
     }
 
-    work_data
+    work_records
 }
 
 /// 根据时间返回时段分类。
