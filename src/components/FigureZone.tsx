@@ -41,7 +41,8 @@ const FigureZone: React.FC<FigureZoneProps> = ({ powerRecords, workRecords, spin
             l: 30,
             r: 30,
             t: 30,
-        }
+        },
+        hovermode: "x",
     };
 
     const month = useSelector<RootState>((state) => state.settings.month);
@@ -52,6 +53,7 @@ const FigureZone: React.FC<FigureZoneProps> = ({ powerRecords, workRecords, spin
         displayModeBar: true,
         displaylogo: false,
         responsive: true,
+        scrollZoom: true,
     }
 
     const eoSeries = useMemo<Series>(() => {
@@ -292,7 +294,7 @@ const FigureZone: React.FC<FigureZoneProps> = ({ powerRecords, workRecords, spin
         <Spin spinning={spinning}>
             <Plot
                 data={powerData}
-                layout={layout as any}
+                layout={{...layout, xaxis: { tickformat: "%Y-%m-%d %H:%M:%S" }} as any}
                 config={config as any}
                 className="chart"
             />
@@ -303,7 +305,7 @@ const FigureZone: React.FC<FigureZoneProps> = ({ powerRecords, workRecords, spin
         <Spin spinning={spinning}>
             <Plot
                 data={workData}
-                layout={layout as any}
+                layout={{...layout, xaxis: { tickformat: "%Y-%m-%d" }} as any}
                 config={config as any}
                 className="chart"
             />
