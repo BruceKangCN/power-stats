@@ -1,11 +1,11 @@
-import { useSelector } from 'react-redux';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from "react";
+import { useSelector } from "react-redux";
 import { Spin, Tabs } from "antd";
 import Plot from "react-plotly.js";
 import { Config, Layout, PlotData } from "plotly.js";
 // @ts-ignore
 import zh_CN from "plotly.js/lib/locales/zh-cn";
-import { RootState } from '../store';
+import { RootState } from "../store";
 import "./FigureZone.css";
 
 interface Series {
@@ -46,6 +46,21 @@ const FigureZone: React.FC<FigureZoneProps> = ({ powerRecords, workRecords, spin
     };
 
     const month = useSelector<RootState>((state) => state.settings.month);
+    const darkMode = useSelector<RootState>((state) => state.settings.darkMode);
+
+    useEffect(() => {
+        const plotContainer = document.querySelector(".plot-container") as HTMLElement | null;
+
+        if (!plotContainer) {
+            return;
+        }
+
+        if (darkMode) {
+            plotContainer.style.filter = "invert(75%) hue-rotate(180deg)";
+        } else {
+            plotContainer.style.filter = "";
+        }
+    }, [darkMode]);
 
     const config: Partial<Config> = {
         locales: { "zh-CN": zh_CN },

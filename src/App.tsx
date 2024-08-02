@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { ConfigProvider, Drawer, message } from "antd";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { ConfigProvider, Drawer, message, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { invoke } from "@tauri-apps/api";
 import MainForm, { FormState } from "./components/MainForm";
 import SettingsForm from "./components/SettingsForm";
 import FigureZone, { PowerRecords, WorkRecords } from "./components/FigureZone";
+import { RootState } from "./store";
 import "./App.css";
 
 interface Response {
@@ -55,9 +57,18 @@ export default function App() {
         setSpinning(false);
     };
 
+    const darkMode = useSelector<RootState>((state) => state.settings.darkMode);
+    useEffect(() => {
+        if (darkMode) {
+            document.body.style.backgroundColor = "#333";
+        } else {
+            document.body.style.backgroundColor = "#FFF";
+        }
+    }, [darkMode]);
+
     return (
-        <div className='container'>
-            <ConfigProvider locale={zhCN}>
+        <div className="container">
+            <ConfigProvider locale={zhCN} theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
 
                 <MainForm
                     onSubmit={requestFigureData}

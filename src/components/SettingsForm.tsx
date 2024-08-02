@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Form, Select } from "antd";
+import { Form, Select, Switch } from "antd";
 import { store } from "../store";
-import { setMonth } from "./SettingsSlice";
+import { setDarkMode, setMonth } from "./SettingsSlice";
 
 export interface FieldData {
     name: string | number | (string | number)[];
@@ -14,6 +14,7 @@ export interface FieldData {
 const SettingsForm: React.FC = () => {
     const [fields, _] = useState<FieldData[]>([
         { name: "month", value: "all" },
+        { name: "darkMode", value: false },
     ]);
 
     return (
@@ -41,6 +42,13 @@ const SettingsForm: React.FC = () => {
                     ]}
                     onChange={(value) => { store.dispatch(setMonth(value)); }}
                 />
+            </Form.Item>
+
+            <Form.Item
+                label="暗黑模式"
+                name="darkMode"
+            >
+                <Switch onChange={(value) => { store.dispatch(setDarkMode(value))}} />
             </Form.Item>
 
         </Form>
